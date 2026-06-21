@@ -4,54 +4,62 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>La Cuenta · Divide gastos entre amigos</title>
-  <meta name="description" content="Divide los gastos de un grupo de amigos en euros. Asigna cada gasto a una persona o repártelo entre todos." />
+  <meta name="description" content="Divide gastos en euros entre amigos: varios eventos, mini-eventos/sitios, participantes y reparto claro de quién paga qué." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%BE%3C/text%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main class="container">
-    <header class="hero">
-      <div class="hero-emoji" aria-hidden="true">🧾</div>
-      <h1>La Cuenta</h1>
-      <p class="subtitle">Divide los gastos del grupo en euros. Asigna cada gasto a alguien o repártelo entre todos. Sin discusiones.</p>
-    </header>
-
-    <section class="card">
-      <h2>Amigos</h2>
-      <form id="person-form" class="inline-form" autocomplete="off">
-        <input id="person-input" class="input" type="text" placeholder="Nombre del amigo" maxlength="24" />
-        <button class="btn btn-primary" type="submit">Añadir</button>
-      </form>
-      <div id="people-list" class="chips"></div>
-      <p id="people-empty" class="empty-hint">Añade al menos una persona para empezar.</p>
-    </section>
-
-    <section class="card">
-      <div class="card-head">
-        <h2>Gastos</h2>
-        <span id="grand-total" class="grand-total">0,00 €</span>
+  <!-- ===== Barra superior ===== -->
+  <header id="app-header" class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <span class="brand-emoji" aria-hidden="true">🧾</span>
+        <span class="brand-name">La Cuenta</span>
       </div>
-      <div id="items-list" class="items"></div>
-      <p id="items-empty" class="empty-hint">Aún no hay gastos. ¡Añade el primero!</p>
-      <button id="add-item" class="btn btn-secondary btn-block" type="button">+ Añadir gasto</button>
-    </section>
 
-    <section class="card">
-      <h2>Quién paga qué</h2>
-      <div id="summary-list" class="summary"></div>
-      <p id="summary-empty" class="empty-hint">El reparto aparecerá aquí cuando añadas amigos y gastos.</p>
-    </section>
+      <div class="event-picker">
+        <select id="event-select" class="input event-select" aria-label="Evento actual"></select>
+        <button id="btn-edit-event" class="icon-btn" type="button" title="Editar evento">✏️</button>
+        <button id="btn-new-event" class="icon-btn" type="button" title="Nuevo evento">＋</button>
+      </div>
 
-    <div class="footer-actions">
-      <button id="reset" class="btn btn-ghost" type="button">Empezar de cero</button>
+      <div id="auth-area" class="auth-area"><!-- login / usuario (lo rellena app.js) --></div>
     </div>
+  </header>
 
-    <footer class="credits">Los datos se guardan en este navegador.</footer>
+  <!-- ===== Aviso de solo lectura (invitados) ===== -->
+  <div id="readonly-banner" class="readonly-banner" hidden>
+    👀 Modo lectura. Inicia sesión (arriba a la derecha) para editar.
+  </div>
+
+  <!-- ===== Pestañas ===== -->
+  <nav id="tabs" class="tabs" aria-label="Secciones">
+    <button class="tab" data-view="resumen" type="button">Resumen</button>
+    <button class="tab" data-view="gastos" type="button">Gastos</button>
+    <button class="tab" data-view="amigos" type="button">Amigos</button>
+    <button class="tab" data-view="sitios" type="button">Sitios</button>
+  </nav>
+
+  <!-- ===== Contenedores de vista ===== -->
+  <main class="container">
+    <section id="view-resumen" class="view" hidden></section>
+    <section id="view-gastos" class="view" hidden></section>
+    <section id="view-amigos" class="view" hidden></section>
+    <section id="view-sitios" class="view" hidden></section>
+
+    <!-- Estado vacío global cuando no hay ningún evento -->
+    <section id="no-event" class="empty-state" hidden></section>
   </main>
 
-  <script src="app.js"></script>
+  <!-- ===== Raíces de overlays ===== -->
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root"></div>
+
+  <footer class="credits">La Cuenta · divide gastos sin discusiones</footer>
+
+  <script type="module" src="./js/app.js"></script>
 </body>
 </html>
