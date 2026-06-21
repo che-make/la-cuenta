@@ -2,7 +2,8 @@
 
 App estática para dividir gastos en euros entre un grupo de amigos.
 
-- **Añade amigos** y un listado de **gastos** (concepto + precio).
+- **Añade amigos** y un listado de **gastos** (concepto + cantidad + precio por unidad).
+- El total de cada gasto se calcula como **cantidad × precio**.
 - Asigna cada gasto a **una persona**, a **varias**, o repártelo entre **todos**.
 - Ve al instante **cuánto paga cada uno** y el **total**.
 

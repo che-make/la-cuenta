@@ -4,13 +4,15 @@ const STORAGE_KEY = "la-cuenta-v1";
 
 /**
  * state.people: [{ id, name }]
- * state.items:  [{ id, name, price, split }]
+ * state.items:  [{ id, name, qty, price, split }]
+ *   price            -> precio por unidad; el total de la linea = qty * price
  *   split === "all"  -> se reparte entre todas las personas (dinámico)
  *   split === [ids]  -> se reparte solo entre esas personas (uno = individual)
  */
 let state = load();
 
 const euro = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
+const itemTotal = (item) => (Number(item.qty) || 0) * (Number(item.price) || 0);
 const uid = () =>
   (crypto.randomUUID && crypto.randomUUID()) || "id-" + Date.now() + "-" + Math.round(Math.random() * 1e6);
 
@@ -18,7 +20,14 @@ const uid = () =>
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const data = JSON.parse(raw);
+      // Migración: los gastos antiguos no tenían cantidad -> por defecto 1.
+      for (const item of data.items || []) {
+        if (item.qty === undefined || item.qty === null || item.qty === "") item.qty = 1;
+      }
+      return data;
+    }
   } catch (_) {}
   return { people: [], items: [] };
 }
@@ -39,11 +48,11 @@ function computeTotals() {
   const totals = Object.fromEntries(state.people.map((p) => [p.id, 0]));
   let grand = 0;
   for (const item of state.items) {
-    const price = Number(item.price) || 0;
-    grand += price;
+    const total = itemTotal(item);
+    grand += total;
     const ids = participantsOf(item);
     if (!ids.length) continue;
-    const share = price / ids.length;
+    const share = total / ids.length;
     for (const id of ids) totals[id] += share;
   }
   return { totals, grand };
@@ -79,7 +88,7 @@ function removePerson(id) {
 
 // ---------- Gastos ----------
 document.getElementById("add-item").addEventListener("click", () => {
-  state.items.push({ id: uid(), name: "", price: "", split: "all" });
+  state.items.push({ id: uid(), name: "", qty: 1, price: "", split: "all" });
   save();
   render();
   // Enfoca el nombre del nuevo gasto.
@@ -148,19 +157,45 @@ function renderItems() {
     const row = document.createElement("div");
     row.className = "item";
 
-    // Línea superior: nombre + precio + borrar
+    // Línea superior: nombre + borrar
     const top = document.createElement("div");
     top.className = "item-top";
 
     const name = document.createElement("input");
     name.className = "input item-name";
     name.type = "text";
-    name.placeholder = "Concepto (p. ej. Cena)";
+    name.placeholder = "Concepto (p. ej. Cervezas)";
     name.value = item.name;
     name.addEventListener("input", () => {
       item.name = name.value;
       save();
     });
+
+    const del = document.createElement("button");
+    del.className = "icon-btn";
+    del.type = "button";
+    del.textContent = "🗑";
+    del.title = "Eliminar gasto";
+    del.addEventListener("click", () => removeItem(item.id));
+
+    top.append(name, del);
+
+    // Línea de cálculo: cantidad × precio = total
+    const calc = document.createElement("div");
+    calc.className = "item-calc";
+
+    const qty = document.createElement("input");
+    qty.className = "input item-qty";
+    qty.type = "number";
+    qty.min = "0";
+    qty.step = "1";
+    qty.placeholder = "1";
+    qty.title = "Cantidad";
+    qty.value = item.qty;
+
+    const opMul = document.createElement("span");
+    opMul.className = "op";
+    opMul.textContent = "×";
 
     const priceWrap = document.createElement("div");
     priceWrap.className = "item-price-wrap";
@@ -170,23 +205,31 @@ function renderItems() {
     price.min = "0";
     price.step = "0.01";
     price.placeholder = "0,00";
+    price.title = "Precio por unidad";
     price.value = item.price;
-    price.addEventListener("input", () => {
-      item.price = price.value;
-      save();
-      renderSummary();
-      renderGrandTotal();
-    });
     priceWrap.appendChild(price);
 
-    const del = document.createElement("button");
-    del.className = "icon-btn";
-    del.type = "button";
-    del.textContent = "🗑";
-    del.title = "Eliminar gasto";
-    del.addEventListener("click", () => removeItem(item.id));
+    const opEq = document.createElement("span");
+    opEq.className = "op";
+    opEq.textContent = "=";
 
-    top.append(name, priceWrap, del);
+    const totalEl = document.createElement("span");
+    totalEl.className = "item-total";
+    totalEl.textContent = euro.format(itemTotal(item));
+
+    // Recalcula el total de la línea y el resto sin re-renderizar (no pierde el foco).
+    const recompute = () => {
+      item.qty = qty.value;
+      item.price = price.value;
+      totalEl.textContent = euro.format(itemTotal(item));
+      save();
+      renderGrandTotal();
+      renderSummary();
+    };
+    qty.addEventListener("input", recompute);
+    price.addEventListener("input", recompute);
+
+    calc.append(qty, opMul, priceWrap, opEq, totalEl);
 
     // Línea de participantes: Todos + una persona por chip
     const people = document.createElement("div");
@@ -220,7 +263,7 @@ function renderItems() {
       people.appendChild(hint);
     }
 
-    row.append(top, people);
+    row.append(top, calc, people);
     itemsList.appendChild(row);
   }
 }
