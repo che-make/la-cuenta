@@ -147,13 +147,23 @@ function loginSupabase() {
         const client = await getClient();
         const { error } = await client.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: location.href },
+          options: {
+            emailRedirectTo: location.href,
+            // Solo emails ya invitados: no se crean usuarios nuevos al vuelo.
+            shouldCreateUser: false,
+          },
         });
         if (error) throw error;
         ctrl.close();
         toast("Te enviamos un enlace. Revisa tu correo.", "success");
       } catch (err) {
-        toast("No se pudo enviar el enlace: " + (err?.message || err), "error");
+        // Si el email no existe (no invitado), Supabase responde con un error
+        // de tipo "signup/otp not allowed": lo traducimos a algo claro.
+        const raw = err?.message || String(err);
+        const friendly = /signup|not allowed|otp|user/i.test(raw)
+          ? "Ese email no está invitado. Pide al organizador que te añada."
+          : "No se pudo enviar el enlace: " + raw;
+        toast(friendly, "error");
       }
     };
 
