@@ -11,3 +11,6 @@ node_modules/
 
 # Vercel
 .vercel/
+
+# Config local del servidor MCP de Supabase (no se publica)
+.mcp.json

@@ -18,8 +18,8 @@
 //  protegen las políticas RLS de supabase/schema.sql.
 // ============================================================
 
-export const SUPABASE_URL = "";       // p. ej. "https://xxxxxxxx.supabase.co"
-export const SUPABASE_ANON_KEY = "";  // p. ej. "eyJhbGciOi..."
+export const SUPABASE_URL = "https://tcwkhjvptkzfjukooyci.supabase.co";
+export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjd2toanZwdGt6Zmp1a29veWNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzEyMTIsImV4cCI6MjA5NzY0NzIxMn0.ck6nj_aUG3sT39r0UCdzvnFKncwOAtXkwSmIWFDhBE4";
 
 // Solo se usa en MODO LOCAL (sin Supabase): contraseña para desbloquear edición.
 export const LOCAL_EDIT_PASSWORD = "lacuenta";
