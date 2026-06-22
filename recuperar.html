@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recuperar datos locales · La Cuenta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{ --green:#58cc02; --green-dark:#3f8f01; --blue:#1cb0f6; --gray:#777; --cloud:#e5e5e5; --ink:#3c3c3c; }
+    *{box-sizing:border-box}
+    body{margin:0;background:#fff;color:var(--ink);font-family:'Nunito Sans',sans-serif;line-height:1.5}
+    main{max-width:620px;margin:0 auto;padding:40px 18px}
+    h1{font-family:'Fredoka',sans-serif;color:var(--green);font-size:30px;margin:0 0 6px}
+    .lead{color:var(--gray);margin:0 0 24px}
+    .card{border:2px solid var(--cloud);border-radius:12px;padding:20px;margin-bottom:16px}
+    #status{font-weight:700;margin:0 0 12px}
+    .btn{font-family:'Nunito Sans',sans-serif;font-weight:700;text-transform:uppercase;border:none;border-radius:12px;
+      padding:14px 22px;color:#fff;background:var(--green);box-shadow:0 4px 0 var(--green-dark);cursor:pointer;font-size:15px}
+    .btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--green-dark)}
+    .btn[hidden]{display:none}
+    .hint{color:var(--gray);font-size:14px}
+    ol{padding-left:20px} li{margin:6px 0}
+    a{color:var(--blue);font-weight:700}
+    pre{background:#f6f6f6;border:2px solid var(--cloud);border-radius:12px;padding:12px;overflow:auto;max-height:260px;font-size:12px;color:#555}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🧾 Recuperar datos locales</h1>
+    <p class="lead">Saca los datos antiguos guardados en este navegador y descárgalos para importarlos a la versión compartida (Supabase).</p>
+
+    <div class="card">
+      <p id="status">Buscando datos antiguos en este navegador…</p>
+      <button id="download" class="btn" hidden>⬇ Descargar JSON</button>
+    </div>
+
+    <div class="card">
+      <strong>Después:</strong>
+      <ol>
+        <li>Abre <a href="./index.html">La Cuenta</a> e inicia sesión (editor).</li>
+        <li>Pulsa <b>Importar</b> y elige el fichero <code>la-cuenta-antiguo.json</code>.</li>
+        <li>Tus datos suben a Supabase y quedan compartidos.</li>
+      </ol>
+      <p class="hint">¿Pone que no hay datos? Entonces los metiste en otra dirección o navegador
+        (p. ej. <code>localhost</code> con <code>npx serve</code>). Abre esta misma página allí.</p>
+    </div>
+
+    <pre id="preview" hidden></pre>
+  </main>
+
+  <script>
+    (function () {
+      function build() {
+        var out = { events: [], people: [], participants: [], mini_events: [], expenses: [] };
+        var now = new Date().toISOString();
+        var v2 = null, v1 = null;
+        try { v2 = JSON.parse(localStorage.getItem("la-cuenta-v2") || "null"); } catch (e) {}
+        try { v1 = JSON.parse(localStorage.getItem("la-cuenta-v1") || "null"); } catch (e) {}
+
+        if (v2 && ((v2.events || []).length || (v2.expenses || []).length || (v2.people || []).length)) {
+          out.events = v2.events || [];
+          out.people = v2.people || [];
+          out.participants = v2.participants || [];
+          out.mini_events = v2.mini_events || [];
+          out.expenses = v2.expenses || [];
+          return { data: out, source: "formato nuevo (v2)" };
+        }
+
+        if (v1 && ((v1.items || []).length || (v1.people || []).length)) {
+          var ev = crypto.randomUUID();
+          out.events.push({ id: ev, name: "Mi cuenta", description: null, start_date: null, end_date: null, created_at: now });
+          var map = {};
+          (v1.people || []).forEach(function (p) {
+            var id = crypto.randomUUID();
+            map[p.id] = id;
+            out.people.push({ id: id, name: p.name, created_at: now });
+            out.participants.push({ id: crypto.randomUUID(), event_id: ev, person_id: id, settled: false });
+          });
+          (v1.items || []).forEach(function (it) {
+            var s = "all";
+            if (Array.isArray(it.split)) {
+              var a = it.split.map(function (x) { return map[x]; }).filter(Boolean);
+              s = a.length ? a : "all";
+            }
+            out.expenses.push({
+              id: crypto.randomUUID(), event_id: ev, name: it.name || "",
+              qty: Number(it.qty) || 1, unit_price: Number(it.price) || 0,
+              paid_by: null, date: null, mini_event_id: null, split: s, created_at: now
+            });
+          });
+          return { data: out, source: "formato original (v1, convertido)" };
+        }
+
+        return { data: null, source: null };
+      }
+
+      var res = build();
+      var status = document.getElementById("status");
+      var btn = document.getElementById("download");
+      var preview = document.getElementById("preview");
+
+      if (!res.data) {
+        status.textContent = "No encontré datos antiguos de La Cuenta en este navegador/URL.";
+        return;
+      }
+
+      status.innerHTML =
+        "Encontrado (" + res.source + "): <b>" + res.data.events.length + "</b> evento(s), <b>" +
+        res.data.people.length + "</b> persona(s), <b>" + res.data.expenses.length + "</b> gasto(s).";
+      preview.hidden = false;
+      preview.textContent = JSON.stringify(res.data, null, 2).slice(0, 4000);
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        var blob = new Blob([JSON.stringify(res.data, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "la-cuenta-antiguo.json";
+        a.click();
+      });
+    })();
+  </script>
+</body>
+</html>
